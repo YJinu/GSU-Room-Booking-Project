@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSU Room Booking</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Page -->
+        <div id="login-page" class="page active">
+            <div class="container">
+                <div class="auth-card">
+                    <div class="logo">
+                        <h1>GSU Room Booking</h1>
+                        <p>Book rooms and resources at Georgia State University</p>
+                    </div>
+                    
+                    <form id="login-form" class="auth-form">
+                        <h2>Login</h2>
+                        <div class="form-group">
+                            <label for="login-username">Username</label>
+                            <input type="text" id="login-username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="login-password">Password</label>
+                            <input type="password" id="login-password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                        <div class="auth-links">
+                            <a href="#" id="show-register">Don't have an account? Register</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Page -->
+        <div id="register-page" class="page">
+            <div class="container">
+                <div class="auth-card">
+                    <div class="logo">
+                        <h1>GSU Room Booking</h1>
+                        <p>Create Your Account</p>
+                    </div>
+                    
+                    <form id="register-form" class="auth-form">
+                        <h2>Register</h2>
+                        
+                        <div class="form-group">
+                            <label for="role">I am a:</label>
+                            <select id="role" required>
+                                <option value="">Select Role</option>
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="first-name">First Name</label>
+                                <input type="text" id="first-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="last-name">Last Name</label>
+                                <input type="text" id="last-name" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">GSU Email</label>
+                            <input type="email" id="email" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Register</button>
+                        <div class="auth-links">
+                            <a href="#" id="show-login">Already have an account? Login</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App (after login) -->
+        <div id="main-app" class="page">
+            <!-- Navigation -->
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <h2>GSU Room Booking</h2>
+                </div>
+                <div class="nav-links">
+                    <a href="#" class="nav-link active" data-view="rooms">Rooms</a>
+                    <a href="#" class="nav-link" data-view="my-bookings">My Bookings</a>
+                    <a href="#" class="nav-link admin-only" data-view="admin-rooms">Manage Rooms</a>
+                    <a href="#" class="nav-link admin-only" data-view="admin-bookings">All Bookings</a>
+                    <a href="#" class="nav-link admin-only" data-view="dashboard">Dashboard</a>
+                </div>
+                <div class="nav-user">
+                    <span id="user-display-name"></span>
+                    <span id="user-role-badge" class="role-badge"></span>
+                    <button id="logout-btn" class="btn btn-outline btn-sm">Logout</button>
+                </div>
+            </nav>
+
+            <div class="main-content">
+                <!-- Room List View -->
+                <div id="rooms-view" class="view active">
+                    <div class="view-header">
+                        <h2>Available Rooms</h2>
+                        <div class="search-bar">
+                            <input type="text" id="room-search" placeholder="Search rooms...">
+                        </div>
+                    </div>
+                    <div id="rooms-grid" class="rooms-grid">
+                        <!-- Rooms loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Room Detail View -->
+                <div id="room-detail-view" class="view">
+                    <div class="view-header">
+                        <button class="btn btn-outline btn-sm" id="back-to-rooms">&larr; Back to Rooms</button>
+                    </div>
+                    <div id="room-detail-content">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- My Bookings View -->
+                <div id="my-bookings-view" class="view">
+                    <div class="view-header">
+                        <h2>My Bookings</h2>
+                        <div class="filter-bar">
+                            <select id="booking-status-filter">
+                                <option value="">All Statuses</option>
+                                <option value="booked">Active</option>
+                                <option value="canceled">Canceled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="my-bookings-list" class="bookings-list">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Admin: Manage Rooms View -->
+                <div id="admin-rooms-view" class="view">
+                    <div class="view-header">
+                        <h2>Manage Rooms</h2>
+                        <button class="btn btn-primary btn-sm" id="add-room-btn">+ Add Room</button>
+                    </div>
+                    <div id="admin-rooms-list" class="admin-table-wrap">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Admin: All Bookings View -->
+                <div id="admin-bookings-view" class="view">
+                    <div class="view-header">
+                        <h2>All Bookings</h2>
+                        <div class="filter-bar">
+                            <select id="admin-booking-status-filter">
+                                <option value="">All Statuses</option>
+                                <option value="booked">Active</option>
+                                <option value="canceled">Canceled</option>
+                            </select>
+                            <select id="admin-booking-room-filter">
+                                <option value="">All Rooms</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="admin-bookings-list" class="admin-table-wrap">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Dashboard / Analytics View -->
+                <div id="dashboard-view" class="view">
+                    <div class="view-header">
+                        <h2>Booking Statistics</h2>
+                    </div>
+                    <div id="dashboard-content" class="dashboard-grid">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modals -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div class="modal" id="modal-content">
+                <!-- Modal content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
