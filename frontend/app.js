@@ -206,8 +206,7 @@ async function handleRegister(e) {
         email: document.getElementById('email').value,
         password: document.getElementById('password').value,
         first_name: document.getElementById('first-name').value,
-        last_name: document.getElementById('last-name').value,
-        role: document.getElementById('role').value
+        last_name: document.getElementById('last-name').value
     };
 
     try {
