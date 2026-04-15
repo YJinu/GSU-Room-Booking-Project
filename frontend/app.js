@@ -98,6 +98,7 @@ function _activateView(viewName) {
         case 'my-bookings': loadMyBookings(); break;
         case 'admin-rooms': loadAdminRooms(); break;
         case 'admin-bookings': loadAdminBookings(); break;
+        case 'admin-users': loadAdminUsers(); break;
         case 'dashboard': loadDashboard(); break;
     }
 }
@@ -770,6 +771,82 @@ async function adminCancelBooking(bookingId) {
 }
 
 // ========================
+// ADMIN: MANAGE USERS
+// ========================
+async function loadAdminUsers() {
+    try {
+        const res = await fetch(`${API_URL}/admin/users`, { credentials: 'include' });
+        const users = await res.json();
+        if (!res.ok) {
+            throw new Error(users.error || 'Failed to load users.');
+        }
+        renderAdminUsers(users);
+    } catch (err) {
+        document.getElementById('admin-users-list').innerHTML = '<div class="alert alert-error">Failed to load users.</div>';
+    }
+}
+
+function renderAdminUsers(users) {
+    const wrap = document.getElementById('admin-users-list');
+    if (!users.length) {
+        wrap.innerHTML = '<div class="empty-state"><h3>No Users</h3><p>No registered users found.</p></div>';
+        return;
+    }
+
+    wrap.innerHTML = `
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${users.map(u => `
+                    <tr>
+                        <td><strong>${escHtml(u.full_name)}</strong></td>
+                        <td>${escHtml(u.username)}</td>
+                        <td>${escHtml(u.email)}</td>
+                        <td><span class="status-badge ${u.role === 'admin' ? 'booked' : 'canceled'}">${escHtml(u.role)}</span></td>
+                        <td>${formatDateTime(u.created_at)}</td>
+                        <td>
+                            ${u.role === 'admin'
+                                ? '<span style="color: var(--text-light);">Already admin</span>'
+                                : `<button class="btn btn-primary btn-xs" onclick="promoteUserToAdmin(${u.id}, '${escAttr(u.full_name)}')">Promote to Admin</button>`}
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+}
+
+async function promoteUserToAdmin(userId, fullName) {
+    if (!confirm(`Promote ${fullName} to admin? This will give them room management, booking management, and dashboard access.`)) return;
+
+    try {
+        const res = await fetch(`${API_URL}/admin/users/${userId}/promote`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.message || 'User promoted successfully.');
+            loadAdminUsers();
+        } else {
+            alert(data.error || 'Failed to promote user.');
+        }
+    } catch (err) {
+        alert('Connection error.');
+    }
+}
+
+// ========================
 // DASHBOARD / ANALYTICS
 // ========================
 async function loadDashboard() {
@@ -905,6 +982,13 @@ function showInlineAlert(containerId, message, type) {
 // ========================
 // UTILS
 // ========================
+function formatDateTime(isoString) {
+    if (!isoString) return '—';
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return isoString;
+    return d.toLocaleString();
+}
+
 function escHtml(str) {
     const d = document.createElement('div');
     d.textContent = str || '';
