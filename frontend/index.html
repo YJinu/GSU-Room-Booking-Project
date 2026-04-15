@@ -48,13 +48,8 @@
                     <form id="register-form" class="auth-form">
                         <h2>Register</h2>
                         
-                        <div class="form-group">
-                            <label for="role">I am a:</label>
-                            <select id="role" required>
-                                <option value="">Select Role</option>
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
-                            </select>
+                        <div class="alert alert-info">
+                            New accounts are created as standard user accounts. Admin accounts must be provisioned by the system administrator.
                         </div>
 
                         <div class="form-row">
@@ -104,6 +99,7 @@
                     <a href="#" class="nav-link" data-view="my-bookings">My Bookings</a>
                     <a href="#" class="nav-link admin-only" data-view="admin-rooms">Manage Rooms</a>
                     <a href="#" class="nav-link admin-only" data-view="admin-bookings">All Bookings</a>
+                    <a href="#" class="nav-link admin-only" data-view="admin-users">Manage Users</a>
                     <a href="#" class="nav-link admin-only" data-view="dashboard">Dashboard</a>
                 </div>
                 <div class="nav-user">
@@ -181,6 +177,17 @@
                         </div>
                     </div>
                     <div id="admin-bookings-list" class="admin-table-wrap">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <!-- Admin: Manage Users View -->
+                <div id="admin-users-view" class="view">
+                    <div class="view-header">
+                        <h2>Manage Users</h2>
+                        <p>Promote trusted employee accounts to admin access.</p>
+                    </div>
+                    <div id="admin-users-list" class="admin-table-wrap">
                         <!-- Loaded dynamically -->
                     </div>
                 </div>
