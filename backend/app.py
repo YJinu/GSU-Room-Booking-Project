@@ -516,6 +516,56 @@ def admin_all_bookings():
     } for b in bookings_list]), 200
 
 
+
+
+@app.route('/api/admin/users', methods=['GET'])
+@login_required
+def admin_users():
+    """Admin: list all users for user management."""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    users = User.query.order_by(User.created_at.desc(), User.id.desc()).all()
+    return jsonify([{
+        'id': u.id,
+        'username': u.username,
+        'email': u.email,
+        'first_name': u.first_name,
+        'last_name': u.last_name,
+        'full_name': f"{u.first_name} {u.last_name}",
+        'role': u.role,
+        'created_at': _to_utc_iso(u.created_at)
+    } for u in users]), 200
+
+
+@app.route('/api/admin/users/<int:user_id>/promote', methods=['POST'])
+@login_required
+def admin_promote_user(user_id):
+    """Admin: promote a standard user to admin."""
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Admin access required'}), 403
+
+    user = User.query.get_or_404(user_id)
+
+    if user.role == 'admin':
+        return jsonify({'error': 'This user is already an admin'}), 400
+
+    user.role = 'admin'
+    db.session.commit()
+
+    return jsonify({
+        'message': f'{user.first_name} {user.last_name} promoted to admin successfully',
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'role': user.role
+        }
+    }), 200
+
+
 @app.route('/api/admin/stats', methods=['GET'])
 @login_required
 def admin_stats():
