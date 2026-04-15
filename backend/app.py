@@ -5,6 +5,7 @@ from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone, timedelta
 from sqlalchemy import inspect, text, func
+from sqlalchemy.exc import IntegrityError
 import os
 
 app = Flask(__name__)
@@ -107,6 +108,67 @@ def _check_overlap(room_id, date, start_time, end_time, exclude_booking_id=None)
     return False
 
 
+def _check_overlap_sql(conn, room_id, date, start_time, end_time, exclude_booking_id=None):
+    """Run the overlap check inside the same DB transaction used for booking creation."""
+    sql = """
+        SELECT id
+        FROM booking
+        WHERE room_id = :room_id
+          AND date = :date
+          AND status = 'booked'
+          AND :start_time < end_time
+          AND :end_time > start_time
+    """
+    params = {
+        'room_id': room_id,
+        'date': date,
+        'start_time': start_time,
+        'end_time': end_time,
+    }
+
+    if exclude_booking_id is not None:
+        sql += ' AND id != :exclude_booking_id'
+        params['exclude_booking_id'] = exclude_booking_id
+
+    sql += ' LIMIT 1'
+    return conn.execute(text(sql), params).first() is not None
+
+
+def _create_booking_atomically(room_id, user_id, date, start_time, end_time):
+    """Create a booking with SQLite write-locking so parallel requests cannot double-book the room."""
+    conn = db.engine.connect()
+    try:
+        # SQLite cannot enforce range-overlap exclusions natively, so we serialize booking writes.
+        # BEGIN IMMEDIATE acquires the write lock before we re-check availability.
+        conn.exec_driver_sql('BEGIN IMMEDIATE')
+
+        if _check_overlap_sql(conn, room_id, date, start_time, end_time):
+            conn.rollback()
+            return None, 'Time slot conflicts with an existing booking. Please choose a different time.'
+
+        result = conn.execute(text("""
+            INSERT INTO booking (room_id, user_id, date, start_time, end_time, status, created_at)
+            VALUES (:room_id, :user_id, :date, :start_time, :end_time, 'booked', :created_at)
+        """), {
+            'room_id': room_id,
+            'user_id': user_id,
+            'date': date,
+            'start_time': start_time,
+            'end_time': end_time,
+            'created_at': datetime.utcnow(),
+        })
+        conn.commit()
+        return result.lastrowid, None
+    except IntegrityError:
+        conn.rollback()
+        return None, 'Time slot conflicts with an existing booking. Please choose a different time.'
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 # =============================================
 # AUTH ROUTES
 # =============================================
@@ -133,7 +195,7 @@ def register():
         password_hash=generate_password_hash(data['password']),
         first_name=data['first_name'],
         last_name=data['last_name'],
-        role=data.get('role', 'user')
+        role='user'
     )
 
     db.session.add(user)
@@ -344,23 +406,21 @@ def bookings():
         if start_time >= end_time:
             return jsonify({'error': 'End time must be after start time'}), 400
 
-        # Check for conflicts (double-booking prevention)
+        # Fast pre-check for normal requests before we take the write lock.
         if _check_overlap(room_id, date, start_time, end_time):
             return jsonify({'error': 'Time slot conflicts with an existing booking. Please choose a different time.'}), 409
 
-        booking = Booking(
+        booking_id, conflict_error = _create_booking_atomically(
             room_id=room_id,
             user_id=current_user.id,
             date=date,
             start_time=start_time,
-            end_time=end_time,
-            status='booked'
+            end_time=end_time
         )
+        if conflict_error:
+            return jsonify({'error': conflict_error}), 409
 
-        db.session.add(booking)
-        db.session.commit()
-
-        return jsonify({'message': 'Room booked successfully', 'booking_id': booking.id}), 201
+        return jsonify({'message': 'Room booked successfully', 'booking_id': booking_id}), 201
 
 
 @app.route('/api/bookings/<int:booking_id>', methods=['GET'])
@@ -588,6 +648,12 @@ def seed_sample_data():
 # Initialize database
 with app.app_context():
     db.create_all()
+    db.session.execute(text("""
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_booking_exact_slot_active
+        ON booking (room_id, date, start_time, end_time)
+        WHERE status = 'booked'
+    """))
+    db.session.commit()
     seed_sample_data()
 
 if __name__ == '__main__':
